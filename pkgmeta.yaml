@@ -1,0 +1,17 @@
+package-as: Bagnon_Uncollected
+enable-nolib-creation: no
+
+move-folders:
+    Bagnon_Uncollected/Bagnon_Uncollected: Bagnon_Uncollected
+
+manual-changelog:
+    filename: CHANGELOG.md
+    markup-type: markdown
+
+license-output: LICENSE.txt
+
+ignore:
+    - CHANGELOG.md
+    - CODE_OF_CONDUCT.md
+    - LICENSE.md
+    - README.md
