@@ -101,7 +101,8 @@ local Update = function(self)
 					-- some items can't have their appearances learned
 					local isInfoReady, canCollect = C_TransmogCollection.PlayerCanCollectSource(sourceID)
 					if (isInfoReady and canCollect) then 
-						(Cache_Uncollected[self] or Cache_GetUncollected(self)):Show()
+						local Uncollected = Cache_Uncollected[self] or Cache_GetUncollected(self)
+						Uncollected:Show()
 					end
 				end
 			else 
