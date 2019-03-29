@@ -1,8 +1,15 @@
-if IsAddOnLoaded("Bagnon_ItemInfo") then 
-	return DisableAddOn((...), true) 
+if (function(addon)
+	for i = 1,GetNumAddOns() do
+		if (string.lower((GetAddOnInfo(i))) == string.lower(addon)) then
+			if (GetAddOnEnableState(UnitName("player"), i) ~= 0) then
+				return 
+			end
+		end
+	end
+end)("Bagnon_ItemInfo") then 
+	return 
 end 
 
--- Using the Bagnon way to retrieve names, namespaces and stuff
 local MODULE =  ...
 local ADDON, Addon = MODULE:match("[^_]+"), _G[MODULE:match("[^_]+")]
 local Module = Bagnon:NewModule("ItemUncollectedAppearance", Addon)
