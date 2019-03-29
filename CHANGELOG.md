@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.3-Release] 2019-03-29
+### Changed 
+- Updated addon detection to avoid messing with the addon loading order. 
+- Updated toc display name to be in line with the main bagnon addon. 
+- Updated description links and team name.
+
 ## [1.0.2-Release] 2019-02-28
 ### Fixed
 - Switched to tooltip scanning using global strings to avoid false positives on uncollected appearances. 
