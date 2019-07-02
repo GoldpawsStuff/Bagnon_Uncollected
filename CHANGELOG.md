@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.4-Release] 2019-07-02
+### Changed
+- Updated for 8.2.0.
+
 ## [1.0.3-Release] 2019-03-29
 ### Changed 
 - Updated addon detection to avoid messing with the addon loading order. 
