@@ -76,21 +76,22 @@ end
 
 
 local Cache_GetUncollected = function(button)
-	local Uncollected = GetPluginContainter(button):CreateTexture()
-	Uncollected:SetDrawLayer("OVERLAY")
-	Uncollected:SetPoint("CENTER", 0, 0)
-	Uncollected:SetSize(24,24)
-	Uncollected:SetTexture([[Interface\Transmogrify\Transmogrify]])
-	Uncollected:SetTexCoord(0.804688, 0.875, 0.171875, 0.230469)
-	Uncollected:Hide()
+	if (not Cache_Uncollected[button]) then
+		local Uncollected = GetPluginContainter(button):CreateTexture()
+		Uncollected:SetDrawLayer("OVERLAY")
+		Uncollected:SetPoint("CENTER", 0, 0)
+		Uncollected:SetSize(24,24)
+		Uncollected:SetTexture([[Interface\Transmogrify\Transmogrify]])
+		Uncollected:SetTexCoord(0.804688, 0.875, 0.171875, 0.230469)
+		Uncollected:Hide()
 
-	-- Move Pawn out of the way
-	RefreshPawn(button)
+		-- Move Pawn out of the way
+		RefreshPawn(button)
 
-	-- Store the reference for the next time
-	Cache_Uncollected[button] = Uncollected
-
-	return Uncollected
+		-- Store the reference for the next time
+		Cache_Uncollected[button] = Uncollected
+	end
+	return Cache_Uncollected[button]
 end
 
 -----------------------------------------------------------
@@ -145,4 +146,7 @@ local Update = function(self)
 	end	
 end 
 
-hooksecurefunc(Bagnon.ItemSlot, "Update", Update)
+local item = Bagnon.ItemSlot or Bagnon.Item
+if (item) and (item.Update) then
+	hooksecurefunc(item, "Update", Update)
+end
