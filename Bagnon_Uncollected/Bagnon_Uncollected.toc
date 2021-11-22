@@ -7,8 +7,6 @@
 ## Author: Lars Norberg
 
 ## X-Category: Inventory
-## X-Discord: https://discord.gg/MUSfWXd
-## X-Website: https://www.patreon.com/goldpawsstuff
 ## X-Curse-Project-ID: 316133
 ## X-Wago-ID: yQKyx567
 ## X-License: Custom
