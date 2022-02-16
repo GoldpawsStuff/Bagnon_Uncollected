@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.17-Release] 2022-02-16
+- ToC bumps and license update.
+
 ## [1.0.16-Release] 2021-12-12
 ### Changed
 - Added a message when the presence of the addon Bagnon ItemInfo causes this one to be auto-disabled.
