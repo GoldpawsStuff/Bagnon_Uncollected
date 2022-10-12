@@ -1,155 +1,106 @@
-if (not Bagnon) then
+--[[
+
+	The MIT License (MIT)
+
+	Copyright (c) 2022 Lars Norberg
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+
+--]]
+local Addon, Private =  ...
+if (Private.Incompatible) then
+	print("|cffff1111"..Addon.." was auto-disabled.")
 	return
 end
-if (function(addon)
-	for i = 1,GetNumAddOns() do
-		local name, title, notes, loadable, reason, security, newVersion = GetAddOnInfo(i)
-		if (name:lower() == addon:lower()) then
-			local enabled = not(GetAddOnEnableState(UnitName("player"), i) == 0) 
-			if (enabled and loadable) then
-				return true
-			end
-		end
-	end
-end)("Bagnon_ItemInfo") then 
-	print("|cffff1111"..(...).." was auto-disabled.")
-	return 
-end 
 
-local MODULE =  ...
-local ADDON, Addon = MODULE:match("[^_]+"), _G[MODULE:match("[^_]+")]
-local Module = Bagnon:NewModule("ItemUncollectedAppearance", Addon)
+local Module = Bagnon:NewModule(Addon, Private)
 
--- Tooltip used for scanning
-local ScannerTipName = "BagnonItemInfoScannerTooltip"
-local ScannerTip = _G[ScannerTipName] or CreateFrame("GameTooltip", ScannerTipName, WorldFrame, "GameTooltipTemplate")
-
--- Lua API
+-- Speed!
 local _G = _G
 local string_find = string.find
-local string_match = string.match
-local tonumber = tonumber
 
 -- WoW API
-local C_TransmogCollection = _G.C_TransmogCollection
-local CreateFrame = _G.CreateFrame
+local PlayerHasTransmog = C_TransmogCollection.PlayerHasTransmog
 
--- WoW Strings
-local S_TRANSMOGRIFY_STYLE_UNCOLLECTED = _G.TRANSMOGRIFY_STYLE_UNCOLLECTED
-local S_TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN = _G.TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
+local cache = Private.cache
+local tooltip = Private.tooltip
+local tooltipName = Private.tooltipName
 
--- FontString & Texture Caches
-local Cache_Uncollected = {}
+-- Search patterns
+local s_transmog1 = TRANSMOGRIFY_STYLE_UNCOLLECTED
+local s_transmog2 = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
 
------------------------------------------------------------
--- Utility Functions
------------------------------------------------------------
--- Update our secret scanner tooltip with the current button
-local RefreshScanner = function(button)
-	local bag, slot = button:GetBag(), button:GetID()
-	ScannerTip.owner = button
-	ScannerTip.bag = bag
-	ScannerTip.slot = slot
-	ScannerTip:SetOwner(button, "ANCHOR_NONE")
-	ScannerTip:SetBagItem(button:GetBag(), button:GetID())
-end
+Module:AddUpdater(function(self)
 
--- Move Pawn out of the way
-local RefreshPawn = function(button)
-	local UpgradeIcon = button.UpgradeIcon
-	if UpgradeIcon then
-		UpgradeIcon:ClearAllPoints()
-		UpgradeIcon:SetPoint("BOTTOMRIGHT", 2, 0)
-	end
-end
+	local show
 
------------------------------------------------------------
--- Cache & Creation
------------------------------------------------------------
--- Retrieve a button's plugin container
-local GetPluginContainter = function(button)
-	local name = button:GetName() .. "ExtraInfoFrame"
-	local frame = _G[name]
-	if (not frame) then 
-		frame = CreateFrame("Frame", name, button)
-		frame:SetAllPoints()
-	end 
-	return frame
-end
+	if (self.hasItem) then
 
+		local quality, id = self.info.quality, self.info.id
 
-local Cache_GetUncollected = function(button)
-	if (not Cache_Uncollected[button]) then
-		local Uncollected = GetPluginContainter(button):CreateTexture()
-		Uncollected:SetDrawLayer("OVERLAY")
-		Uncollected:SetPoint("CENTER", 0, 0)
-		Uncollected:SetSize(24,24)
-		Uncollected:SetTexture([[Interface\Transmogrify\Transmogrify]])
-		Uncollected:SetTexCoord(0.804688, 0.875, 0.171875, 0.230469)
-		Uncollected:Hide()
+		if (quality and quality > 1 and not PlayerHasTransmog(id --[[, itemAppearanceModID ]])) then
 
-		-- Move Pawn out of the way
-		RefreshPawn(button)
-
-		-- Store the reference for the next time
-		Cache_Uncollected[button] = Uncollected
-	end
-	return Cache_Uncollected[button]
-end
-
------------------------------------------------------------
--- Main Update
------------------------------------------------------------
-local Update = function(self)
-	local itemLink = self:GetItem() 
-	if itemLink then
-
-		-- Get some blizzard info about the current item
-		local itemName, _itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, iconFileDataID, itemSellPrice, itemClassID, itemSubClassID, bindType, expacID, itemSetID, isCraftingReagent = GetItemInfo(itemLink)
-
-		-- Retrieve the itemID from the itemLink
-		local itemID = tonumber(string_match(itemLink, "item:(%d+)"))
-
-		---------------------------------------------------
-		-- Uncollected Appearance
-		---------------------------------------------------
-		if (itemRarity and itemRarity > 1) and (not C_TransmogCollection.PlayerHasTransmog(itemID)) then 
-
-			-- Refresh the scanner only if we actually need to scan
-			RefreshScanner(self)
-
-			local unknown
-			for i = ScannerTip:NumLines(),2,-1 do 
-				local line = _G[ScannerTipName.."TextLeft"..i]
-				if line then 
-					local msg = line:GetText()
-					if msg and (string_find(msg, S_TRANSMOGRIFY_STYLE_UNCOLLECTED) or string_find(msg, S_TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN)) then
-					unknown = true
-						break
-					end
-				end
-			end 
-			if (unknown) then 
-				local Uncollected = Cache_Uncollected[self] or Cache_GetUncollected(self)
-				Uncollected:Show()
-			else 
-				if Cache_Uncollected[self] then 
-					Cache_Uncollected[self]:Hide()
-				end	
+			if (not tooltip.owner or not tooltip.bag or not tooltip.slot) then
+				tooltip.owner, tooltip.bag,tooltip.slot = self, self.bag, self:GetID()
+				tooltip:SetOwner(tooltip.owner, "ANCHOR_NONE")
+				tooltip:SetBagItem(tooltip.bag, tooltip.bag)
 			end
-		else
-			if Cache_Uncollected[self] then 
-				Cache_Uncollected[self]:Hide()
-			end	
-		end
-	else
-		if Cache_Uncollected[self] then 
-			Cache_Uncollected[self]:Hide()
-		end	
-	end	
-end 
 
-local item = Bagnon.ItemSlot or Bagnon.Item
-if (item) and (item.Update) then
-	hooksecurefunc(item, "Update", Update)
-end
+			for i = tooltip:NumLines(),2,-1 do
+				local line = _G[tooltipName.."TextLeft"..i]
+				if (not line) then
+					break
+				end
+
+				local msg = line:GetText() or ""
+				if (string_find(msg, s_transmog1) or string_find(msg, s_transmog2)) then
+					show = true
+					break
+				end
+			end
+
+		end
+
+	end
+
+	if (show) then
+
+		local overlay = cache[self]
+		if (not overlay) then
+			overlay = self:CreateTexture()
+			overlay.icon = self.icon or _G[self:GetName().."IconTexture"]
+			overlay:Hide()
+			overlay:SetDrawLayer("OVERLAY")
+			overlay:SetPoint("CENTER", 0, 0)
+			overlay:SetSize(24, 24)
+			overlay:SetTexture([[Interface\Transmogrify\Transmogrify]])
+			overlay:SetTexCoord(.804688, .875, .171875, .230469)
+			cache[self] = overlay
+		end
+
+		overlay:Show()
+
+	else
+		local overlay = cache[self]
+		if (overlay) then
+			overlay:Hide()
+		end
+	end
+
+end)
