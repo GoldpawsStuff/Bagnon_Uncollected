@@ -52,7 +52,7 @@ Module:AddUpdater(function(self)
 
 	if (self.hasItem) then
 
-		local quality, id = self.info.quality, self.info.id
+		local id, quality = self.info.id or self.info.itemID, self.info.quality
 
 		if (quality and quality > 1 and not PlayerHasTransmog(id --[[, itemAppearanceModID ]])) then
 
