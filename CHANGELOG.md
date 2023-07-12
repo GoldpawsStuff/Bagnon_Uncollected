@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.32-Release] 2023-07-12
+- Bumped to Retail Client Patch 10.1.5.
+
 ## [2.0.31-Release] 2023-06-07
 ### Removed
 - Removed the annoying startup message when loaded alongside Bagnon ItemInfo.
