@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.34-Release] 2023-09-06
+- Updated for Retail client patch 10.1.7.
+
 ## [2.0.33-Release] 2023-07-22
 ### Changed
 - Updated addon listing icon and text format.
