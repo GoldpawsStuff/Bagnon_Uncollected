@@ -12,8 +12,10 @@
 ## X-Wago-ID: yQKyx567
 ## X-License: Custom
 
+## OptionalDeps: TaintLess
 ## RequiredDeps: Bagnon
 
+embeds.xml
 dispatcher.lua
 defaults.lua
 main.lua
