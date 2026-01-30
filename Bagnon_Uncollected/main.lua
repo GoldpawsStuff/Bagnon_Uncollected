@@ -2,7 +2,7 @@
 
 	The MIT License (MIT)
 
-	Copyright (c) 2024 Lars Norberg
+	Copyright (c) 2023 Lars Norberg
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -29,24 +29,47 @@ if (Private.Incompatible) then
 	return
 end
 
-local Module = Bagnon:NewModule(Addon, Private)
+-- FIX: Get the Bagnon module properly
+local Module
+if Bagnon and Bagnon.NewModule then
+	Module = Bagnon:NewModule(Addon, Private)
+else
+	-- Create a simple module structure if Bagnon isn't loaded yet
+	Module = {}
+	Module.name = Addon
+	-- We'll try to register with Bagnon when it loads
+	local frame = CreateFrame("Frame")
+	frame:RegisterEvent("ADDON_LOADED")
+	frame:SetScript("OnEvent", function(self, event, addonName)
+		if addonName == "Bagnon" and Bagnon and Bagnon.NewModule then
+			Module = Bagnon:NewModule(Addon, Private)
+			-- Now we can add our updater
+			if Module and Private.AddUpdater then
+				Private.AddUpdater(Module, UpdateFunction)
+			end
+			self:UnregisterAllEvents()
+		end
+	end)
+end
 
 -- Speed!
 local _G = _G
 local string_find = string.find
 
 -- WoW API
-local PlayerHasTransmog = C_TransmogCollection.PlayerHasTransmog
+-- FIX: Use safe API access
+local PlayerHasTransmog = C_TransmogCollection and C_TransmogCollection.PlayerHasTransmog or function() return false end
 
 local cache = Private.cache
 local tooltip = Private.tooltip
 local tooltipName = Private.tooltipName
 
 -- Search patterns
-local s_transmog1 = TRANSMOGRIFY_STYLE_UNCOLLECTED
-local s_transmog2 = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
+local s_transmog1 = TRANSMOGRIFY_STYLE_UNCOLLECTED or "Uncollected"
+local s_transmog2 = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN or "You have not collected this appearance"
 
-Module:AddUpdater(function(self)
+-- Define the update function separately to avoid recursion issues
+local UpdateFunction = function(self)
 
 	local show
 
@@ -54,7 +77,7 @@ Module:AddUpdater(function(self)
 
 		local id, quality = self.info.id or self.info.itemID, self.info.quality
 
-		if (quality and quality > 1 and not PlayerHasTransmog(id --[[, itemAppearanceModID ]])) then
+		if (quality and quality > 1 and id and not PlayerHasTransmog(id)) then
 
 			if (not tooltip.owner or not tooltip.bag or not tooltip.slot) then
 				tooltip.owner, tooltip.bag,tooltip.slot = self, self:GetBag(), self:GetID()
@@ -103,4 +126,14 @@ Module:AddUpdater(function(self)
 		end
 	end
 
-end)
+end
+
+-- FIX: Don't create a recursive AddUpdater method on Module
+-- Instead, just register the update function directly with Private
+if Module and Private.AddUpdater then
+	Private.AddUpdater(Module, UpdateFunction)
+else
+	-- Fallback: add directly to updates table
+	table.insert(Private.updates, UpdateFunction)
+	Private.updatesByModule[Module or Addon] = UpdateFunction
+end
