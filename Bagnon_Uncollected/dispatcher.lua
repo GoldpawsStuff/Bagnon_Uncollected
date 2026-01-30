@@ -2,7 +2,7 @@
 
 	The MIT License (MIT)
 
-	Copyright (c) 2024 Lars Norberg
+	Copyright (c) 2023 Lars Norberg
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +25,15 @@
 --]]
 local _, Private =  ...
 
--- WoW 11.0.x
-local GetAddOnEnableState = GetAddOnEnableState or function(character, name) return C_AddOns.GetAddOnEnableState(name, character) end
-local GetAddOnInfo = GetAddOnInfo or C_AddOns.GetAddOnInfo
-local GetNumAddOns = GetNumAddOns or C_AddOns.GetNumAddOns
-
-for i = 1,GetNumAddOns() do
-	local name, _, _, loadable = GetAddOnInfo(i)
+-- FIX: Check for Bagnon_ItemInfo addon using the new API
+Private.Incompatible = false
+for i = 1, C_AddOns.GetNumAddOns() do
+	local name = C_AddOns.GetAddOnInfo(i)
 	if (name == "Bagnon_ItemInfo") then
-		if (loadable and not(GetAddOnEnableState(UnitName("player"), i) == 0)) then
+		-- Check if it's enabled for the current character
+		local enabled = C_AddOns.IsAddOnLoaded(i) or 
+		              (C_AddOns.GetAddOnEnableState and C_AddOns.GetAddOnEnableState(UnitName("player"), i) == 2)
+		if enabled then
 			Private.Incompatible = true
 			return
 		else
@@ -46,16 +46,17 @@ Private.cache = {}
 
 Private.updates = BAGNON_ITEMINFO_UPDATES or {}
 Private.updatesByModule = BAGNON_ITEMINFO_UPDATES_BY_MODULE or {}
-Private.tooltip = BAGNON_ITEMINFO_SCANNERTOOLTIP or CreateFrame("GameTooltip", "BAGNON_ITEMINFO_SCANNERTOOLTIP", WorldFrame, "GameTooltipTemplate")
+Private.tooltip = BAGNON_ITEMINFO_SCANNERTOOLTIP or CreateFrame("GameTooltip", "BAGNON_ITEMINFO_SCANNERTOOLTIP", UIParent, "GameTooltipTemplate")
 Private.tooltipName = Private.tooltip:GetName()
 
-Private.ClientMajor = tonumber((string.split(".", (GetBuildInfo()))))
+Private.ClientMajor = tonumber((string.split(".", (GetBuildInfo())))) or 10
 Private.IsRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 Private.IsClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 Private.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 Private.IsWrath = (WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC)
 Private.IsShadowlands = Private.ClientMajor == 9
 Private.IsDragonflight = Private.ClientMajor == 10
+Private.IsWarWithin = Private.ClientMajor == 11
 
 -- Speed!
 local next, table_insert = next, table.insert
@@ -69,9 +70,11 @@ end
 
 -- Forcefully update this module's buttons.
 Private.Forceupdate = function(module)
-	local cache, func = Private.cache, Private.owners[module]
-	for item in next,cache do
-		func(item)
+	local cache, func = Private.cache, Private.updatesByModule[module]
+	if func then
+		for item in next,cache do
+			func(item)
+		end
 	end
 end
 
@@ -86,7 +89,33 @@ end
 
 -- Hook the updater
 if (not BAGNON_ITEMINFO_DISPATCHER) then
-	hooksecurefunc(Bagnon.ItemSlot or Bagnon.Item, "Update", Private.Dispatcher)
+	-- FIX: Use a safe approach to hook Bagnon's item update
+	local hooked = false
+	local function HookBagnonUpdate()
+		if not hooked and Bagnon then
+			-- Try to find the Item or ItemSlot class
+			local target = Bagnon.ItemSlot or Bagnon.Item
+			if target and target.Update then
+				hooksecurefunc(target, "Update", Private.Dispatcher)
+				hooked = true
+			end
+		end
+	end
+	
+	-- Try to hook immediately or wait for Bagnon to load
+	if Bagnon then
+		HookBagnonUpdate()
+	else
+		-- Wait for Bagnon to load
+		local frame = CreateFrame("Frame")
+		frame:RegisterEvent("ADDON_LOADED")
+		frame:SetScript("OnEvent", function(self, event, addonName)
+			if addonName == "Bagnon" then
+				HookBagnonUpdate()
+				self:UnregisterAllEvents()
+			end
+		end)
+	end
 end
 
 -- (Re)assign globals
